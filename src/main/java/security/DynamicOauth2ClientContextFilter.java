@@ -31,6 +31,7 @@ public class DynamicOauth2ClientContextFilter extends OAuth2ClientContextFilter 
         }
 
         String url = getBaseUrl(request) + builder.build().encode().toUriString();
+
         this.redirectStrategy.sendRedirect(request, response, url);
     }
 

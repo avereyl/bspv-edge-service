@@ -16,16 +16,20 @@ import org.springframework.security.oauth2.client.token.grant.client.ClientCrede
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.implicit.ImplicitAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordAccessTokenProvider;
-
+/**
+ * 
+ *
+ */
 @EnableZuulProxy
 @EnableDiscoveryClient
 @SpringBootApplication
-public class BspvEdgeServiceApplication {
+public class EdgeServiceApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(BspvEdgeServiceApplication.class, args);
+		SpringApplication.run(EdgeServiceApplication.class, args);
 	}
 	
+	//FIXME
 	@Bean
 	UserInfoRestTemplateCustomizer userInfoRestTemplateCustomizer(SpringClientFactory springClientFactory) {
 	    return template -> {

@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.oauth2.client.EnableOAuth2Sso;
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -21,15 +22,14 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.client.filter.OAuth2ClientContextFilter;
-import org.springframework.security.oauth2.config.annotation.web.configuration.EnableResourceServer;
 import org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationManager;
 import org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -38,13 +38,12 @@ import security.DynamicOauth2ClientContextFilter;
 
 @Configuration
 @EnableOAuth2Sso
-@EnableResourceServer
 @Order(value = 0)
-public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
+public class OAuth2ClientConfig extends WebSecurityConfigurerAdapter {
 
     private static final String CSRF_COOKIE_NAME = "XSRF-TOKEN";
     private static final String CSRF_HEADER_NAME = "X-XSRF-TOKEN";
-
+    
     @Autowired
     private ResourceServerTokenServices resourceServerTokenServices;
 
@@ -57,17 +56,20 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Override
     public void configure(HttpSecurity http) throws Exception {
 // @formatter:off
-        http.authorizeRequests()
-            .antMatchers("/uaa/**", "/login").permitAll()
-            .anyRequest().authenticated()
+        http
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .and()
+            .authorizeRequests()
+                .antMatchers("/uaa/**", "/login").permitAll()
+                .anyRequest().authenticated()
+            .and()
+            .logout().permitAll().logoutSuccessUrl("/")
             .and()
             .csrf().requireCsrfProtectionMatcher(csrfRequestMatcher()).csrfTokenRepository(csrfTokenRepository())
             .and()
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            .and()
             .addFilterAfter(csrfHeaderFilter(), CsrfFilter.class)
             .addFilterAfter(oAuth2AuthenticationProcessingFilter(), AbstractPreAuthenticatedProcessingFilter.class)
-            .logout().permitAll().logoutSuccessUrl("/");
+            ;
 // @formatter:on
     }
 
@@ -78,15 +80,20 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
         return oAuth2AuthenticationProcessingFilter;
     }
 
-    private AuthenticationManager oauthAuthenticationManager() {
+    /**
+     * Expose the {@link AuthenticationManager} as a spring bean to disable {@link UserDetailsServiceAutoConfiguration}.
+     * @return an OAuth authentication manager
+     */
+    @Bean
+    public AuthenticationManager oauthAuthenticationManager() {
         OAuth2AuthenticationManager oAuth2AuthenticationManager = new OAuth2AuthenticationManager();
         oAuth2AuthenticationManager.setResourceId("edge-service");
         oAuth2AuthenticationManager.setTokenServices(resourceServerTokenServices);
         oAuth2AuthenticationManager.setClientDetailsService(null);
-
         return oAuth2AuthenticationManager;
     }
-
+    
+    
     private RequestMatcher csrfRequestMatcher() {
         return new RequestMatcher() {
             // Always allow the HTTP GET method
@@ -110,12 +117,12 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
             }
         };
     }
-
+    
     private static Filter csrfHeaderFilter() {
         return new OncePerRequestFilter() {
             @Override
             protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                    FilterChain filterChain) throws ServletException, IOException {
+                                            FilterChain filterChain) throws ServletException, IOException {
                 CsrfToken csrf = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
                 if (csrf != null) {
                     Cookie cookie = new Cookie(CSRF_COOKIE_NAME, csrf.getToken());
@@ -129,10 +136,9 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     }
 
     private static CsrfTokenRepository csrfTokenRepository() {
-        CookieCsrfTokenRepository repository = new CookieCsrfTokenRepository();
-        repository.setCookieHttpOnly(false);
-        repository.setCookieName(CSRF_COOKIE_NAME);
+        HttpSessionCsrfTokenRepository repository = new HttpSessionCsrfTokenRepository();
         repository.setHeaderName(CSRF_HEADER_NAME);
         return repository;
     }
+    
 }
