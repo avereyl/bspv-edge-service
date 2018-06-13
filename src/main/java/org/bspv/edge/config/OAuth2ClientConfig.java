@@ -10,6 +10,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.bspv.edge.security.DynamicOauth2ClientContextFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.oauth2.client.EnableOAuth2Sso;
 import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
@@ -19,6 +20,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.client.filter.OAuth2ClientContextFilter;
@@ -33,8 +35,6 @@ import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
-
-import security.DynamicOauth2ClientContextFilter;
 
 @Configuration
 @EnableOAuth2Sso
@@ -53,6 +53,13 @@ public class OAuth2ClientConfig extends WebSecurityConfigurerAdapter {
         return new DynamicOauth2ClientContextFilter();
     }
 
+    
+    @Override
+    public void configure(WebSecurity web) throws Exception {
+        web.ignoring().antMatchers("favicon.ico");
+    }
+
+
     @Override
     public void configure(HttpSecurity http) throws Exception {
 // @formatter:off
@@ -61,14 +68,15 @@ public class OAuth2ClientConfig extends WebSecurityConfigurerAdapter {
             .and()
             .authorizeRequests()
                 .antMatchers("/uaa/**", "/login").permitAll()
-                .anyRequest().authenticated()
+                .anyRequest().fullyAuthenticated()
             .and()
-            .logout().permitAll().logoutSuccessUrl("/")
+            .logout().permitAll()//.logoutSuccessUrl("/")
             .and()
             .csrf().requireCsrfProtectionMatcher(csrfRequestMatcher()).csrfTokenRepository(csrfTokenRepository())
             .and()
             .addFilterAfter(csrfHeaderFilter(), CsrfFilter.class)
             .addFilterAfter(oAuth2AuthenticationProcessingFilter(), AbstractPreAuthenticatedProcessingFilter.class)
+//            .anonymous().disable()
             ;
 // @formatter:on
     }

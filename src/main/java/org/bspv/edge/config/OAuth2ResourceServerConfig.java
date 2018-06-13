@@ -9,8 +9,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableResourceServer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.ResourceServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configurers.ResourceServerSecurityConfigurer;
@@ -34,30 +32,6 @@ public class OAuth2ResourceServerConfig extends ResourceServerConfigurerAdapter 
     @Override
     public void configure(ResourceServerSecurityConfigurer resources) throws Exception {
         resources.tokenServices(tokenServices());
-    }
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.springframework.security.oauth2.config.annotation.web.configuration.
-     * ResourceServerConfigurerAdapter#configure(org.springframework.security.config
-     * .annotation.web.builders.HttpSecurity)
-     */
-    @Override
-    public void configure(HttpSecurity http) throws Exception {
-// @formatter:off
-        http
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            .and()
-            .authorizeRequests()
-                .antMatchers("/uaa/**", "/login").permitAll()
-                .anyRequest().authenticated()
-            .and()
-            .logout().permitAll().logoutSuccessUrl("/")
-            //TODO CRSF protection
-            .and().csrf().disable();
-        //TODO CRSF protection
-// @formatter:on
     }
 
     @Bean

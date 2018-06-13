@@ -1,4 +1,4 @@
-package security;
+package org.bspv.edge.security;
 
 import java.io.IOException;
 import java.util.Map;
